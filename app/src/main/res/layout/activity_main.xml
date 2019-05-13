@@ -10,6 +10,30 @@
     <LinearLayout
         android:id="@+id/colLeft"
         android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_weight="0.85">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/colorBlack">
+
+            <TextView
+                android:id="@+id/textOutput"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="Output\n********************"
+                android:scrollbars="vertical"
+                android:fadeScrollbars="false"
+                android:textColor="@color/colorWhite"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/colMid"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_weight="3">
@@ -30,21 +54,7 @@
                 android:src="@drawable/test1_1" />
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:background="@color/colorBlack">
 
-            <TextView
-                android:id="@+id/textOutput"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="Output"
-                android:scrollbars="vertical"
-                android:fadeScrollbars="false"
-                android:textColor="@color/colorWhite"/>
-        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
