@@ -41,7 +41,6 @@ import java.util.TimerTask;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     ImageView imageCamera;
-    Bitmap bmp;
     boolean isRev = false;
 
     @Override
@@ -61,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         final TextView logView = findViewById(R.id.textOutput);
         logView.setMovementMethod(ScrollingMovementMethod.getInstance());
 
+        // 获取之前存储的信息
         SharedPreferences read = getSharedPreferences("HostAndPort", MODE_PRIVATE);
         String value = read.getString("host", "");
         EditText etHost = findViewById(R.id.textHost);
@@ -68,34 +68,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         value = read.getString("port", "");
         EditText etPort = findViewById(R.id.textPort);
         etPort.setText(value);
+
+        // 设置定时器
         final Timer timer = new Timer();
         TimerTask task;
 
-        Switch switch_isrev = (Switch) findViewById(R.id.switchUpdate);
-        // 添加监听
+        // 添加开关监听
+        Switch switch_isrev = findViewById(R.id.switchUpdate);
         switch_isrev.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked){
+                if (isChecked) {
                     isRev = true;
-                }else {
+                } else {
                     isRev = false;
                 }
             }
         });
 
-        //计时器任务，每隔100ms尝试获取图片
+        // 计时器任务，每隔400ms尝试获取图片
         task = new TimerTask() {
             @Override
             public void run() {
-                if (!isRev) return;
+                if (!isRev)
+                    return;
 
                 new Thread() {
                     @Override
                     public void run() {
                         Looper.prepare();
                         try {
-                            //String outputStr;
+                            // String outputStr;
                             final String endline = ("\n********************");
                             outputMsg("开始连接（摄像头）...", 1);
 
@@ -103,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             EditText etPort = findViewById(R.id.textPort);
                             outputMsg("获取连接数据...", 1);
 
-                            //检查IP格式合法性
+                            // 检查IP格式合法性
                             if (TextUtils.isEmpty(etHost.getText())) {
                                 outputMsg("host不能为空！" + endline, 1);
                                 return;
@@ -130,80 +133,80 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     ++hostcnt;
                                 }
                             }
-                            if (dotcnt != 3 || hostcnt > 3) hostflag = false;
+                            if (dotcnt != 3 || hostcnt > 3)
+                                hostflag = false;
                             if (!hostflag) {
                                 outputMsg("host格式错误！" + endline, 1);
                                 return;
                             }
-                            //保存IP数据
+                            // 保存IP数据
                             SharedPreferences.Editor editor = getSharedPreferences("HostAndPort", MODE_PRIVATE).edit();
                             editor.putString("host", hostText);
                             editor.commit();
 
-                            //检查端口格式合法性
+                            // 检查端口格式合法性
                             if (TextUtils.isEmpty(etPort.getText())) {
                                 outputMsg("port不能为空！" + endline, 1);
                                 return;
                             }
                             String portText = String.valueOf(etPort.getText()).trim();
-                            if(!isNumeric(portText)) {
+                            if (!isNumeric(portText)) {
                                 outputMsg("端口数据错误，应为整数！" + endline, 1);
                                 return;
                             }
-                            if(Integer.valueOf(portText) < 0 || Integer.valueOf(portText) > 65535) {
+                            if (Integer.valueOf(portText) < 0 || Integer.valueOf(portText) > 65535) {
                                 outputMsg("端口范围错误！0≤port≤65535！" + endline, 1);
                                 return;
                             }
-                            //保存端口数据
+                            // 保存端口数据
                             editor.putString("port", portText);
                             editor.commit();
 
-                            //新建socket
+                            // 新建socket
                             InetAddress addr = InetAddress.getByName(hostText);
                             Socket socket = new Socket(addr, Integer.valueOf(portText));
 
-                            //此处必须有输出流，否则输入流一直为空，原因不明
+                            // 此处必须有输出流，否则输入流一直为空，原因不明
                             OutputStream os = socket.getOutputStream();
                             String sendmsg = "@";
                             os.write(sendmsg.getBytes());
                             socket.shutdownOutput();
 
-                            //图片传输
+                            // 图片传输
                             outputMsg("开始接收图片...", 1);
                             DataInputStream dataInput = new DataInputStream(socket.getInputStream());
                             List<Byte> list = new ArrayList<>();
-                            int size = 1024;//每次传输1024byte
+                            int size = 1024;// 每次传输1024byte
                             byte[] data = new byte[size];
                             int len;
-                            //读入直到输入流为空
-                            while ((len = dataInput.read(data, 0, data.length)) > 0){
-                                //重要：把len作为参数传进去，
-                                //由于网络原因，DataInputStream.read并不是每次都返回data.size个字节，有可能比data.size小，
-                                //那么data[]后面的字节填充的是无效数据，要把它忽略掉，否则图片有马赛克
+                            // 读入直到输入流为空
+                            while ((len = dataInput.read(data, 0, data.length)) > 0) {
+                                // 重要：把len作为参数传进去，
+                                // 由于网络原因，DataInputStream.read并不是每次都返回data.size个字节，有可能比data.size小，
+                                // 那么data[]后面的字节填充的是无效数据，要把它忽略掉，否则图片有马赛克
                                 appendByteArrayIntoByteList(list, data, len);
                             }
-                            //将数据转为byte数组
+                            // 将数据转为byte数组
                             Byte[] IMG = list.toArray(new Byte[0]);
                             byte[] img = new byte[IMG.length];
-                            for (int i = 0; i < IMG.length; i++){
+                            for (int i = 0; i < IMG.length; i++) {
                                 img[i] = IMG[i];
                             }
-                            //将数据转为bitmap图像
+                            // 将数据转为bitmap图像
                             ByteArrayOutputStream outPut = new ByteArrayOutputStream();
                             Bitmap bmp = BitmapFactory.decodeByteArray(img, 0, img.length);
-                            if (bmp == null){
+                            if (bmp == null) {
                                 outputMsg("未获取到图片！", 1);
                                 return;
                             }
                             bmp.compress(Bitmap.CompressFormat.PNG, 100, outPut);
-                            //传回主线程
+                            // 传回主线程
                             Message msg = new Message();
-                            //msg.what = 0x002;
                             msg.obj = bmp;
                             handlerSetImg.sendMessage(msg);
                             outputMsg("图片已接收！", 1);
 
-                            //关闭输出流，关闭socket连接
+                            // 关闭输出流，关闭socket连接
                             os.close();
                             socket.close();
                             outputMsg(endline, 1);
@@ -215,15 +218,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }.start();
             }
         };
-        //启动定时器
-        timer.schedule(task, 100, 100);
+        // 启动定时器
+        timer.schedule(task, 400, 400);
     }
 
-    //缩放图片填充到画布中
+    // 缩放图片填充到画布中
     Handler handlerSetImg = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            if (isRev == false) return;
+            if (isRev == false)
+                return;
             Bitmap model = (Bitmap) msg.obj;
             ImageView imageView = findViewById(R.id.imageCamera);
             Bitmap dst = Bitmap.createScaledBitmap(model, imageView.getHeight(), imageView.getWidth(), true);
@@ -231,23 +235,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
-    //输出状态信息
+    // 输出状态信息
     Handler handlerOutput = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            if (isRev == false && msg.what == 1) return;
+            if (isRev == false && msg.what == 1)
+                return;
             String str = (String) msg.obj;
             TextView textView = findViewById(R.id.textOutput);
-            //textView.setText(textView.getText() + "\n" + str);
+            // textView.setText(textView.getText() + "\n" + str);
             textView.append("\n" + str);
-            int offset=textView.getLineCount()*textView.getLineHeight();
-            if(offset>textView.getHeight()){
-                textView.scrollTo(0,offset-textView.getHeight());
+            int offset = textView.getLineCount() * textView.getLineHeight();
+            if (offset > textView.getHeight()) {
+                textView.scrollTo(0, offset - textView.getHeight());
             }
         }
     };
 
-    //发送坐标信息
+    // 发送坐标信息
     @Override
     public void onClick(View v) {
         new Thread() {
@@ -265,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     EditText etPort = findViewById(R.id.textPort);
                     outputMsg("获取连接数据...", 2);
 
-                    //检查IP格式合法性
+                    // 检查IP格式合法性
                     if (TextUtils.isEmpty(etHost.getText())) {
                         outputMsg("host不能为空！" + endline, 2);
                         return;
@@ -292,44 +297,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             ++hostcnt;
                         }
                     }
-                    if (dotcnt != 3 || hostcnt > 3) hostflag = false;
+                    if (dotcnt != 3 || hostcnt > 3)
+                        hostflag = false;
                     if (!hostflag) {
                         outputMsg("host格式错误！" + endline, 2);
                         return;
                     }
-                    //保存IP数据
+                    // 保存IP数据
                     SharedPreferences.Editor editor = getSharedPreferences("HostAndPort", MODE_PRIVATE).edit();
                     editor.putString("host", hostText);
                     editor.commit();
 
-                    //检查端口格式合法性
+                    // 检查端口格式合法性
                     if (TextUtils.isEmpty(etPort.getText())) {
                         outputMsg("port不能为空！" + endline, 2);
                         return;
                     }
                     String portText = String.valueOf(etPort.getText()).trim();
-                    if(!isNumeric(portText)) {
+                    if (!isNumeric(portText)) {
                         outputMsg("端口数据错误，应为整数！" + endline, 2);
                         return;
                     }
-                    if(Integer.valueOf(portText) < 0 || Integer.valueOf(portText) > 65535) {
+                    if (Integer.valueOf(portText) < 0 || Integer.valueOf(portText) > 65535) {
                         outputMsg("端口范围错误！0≤port≤65535！" + endline, 2);
                         return;
                     }
-                    //保存端口数据
+                    // 保存端口数据
                     editor.putString("port", portText);
                     editor.commit();
 
-                    //检查坐标是否为空
+                    // 检查坐标是否为空
                     if (TextUtils.isEmpty(etX.getText()) || TextUtils.isEmpty(etY.getText())) {
                         outputMsg("坐标不能为空！" + endline, 2);
                         return;
                     }
-                    //新建socket
+                    // 新建socket
                     InetAddress addr = InetAddress.getByName(hostText);
                     Socket socket = new Socket(addr, Integer.valueOf(portText));
 
-                    //发送坐标信息
+                    // 发送坐标信息
                     OutputStream os = socket.getOutputStream();
                     String sendmsg = "xx" + etX.getText().toString().trim();
                     os.write(sendmsg.getBytes());
@@ -343,42 +349,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     outputStr += sendmsg;
                     outputMsg(outputStr, 2);
 
-                    //图片传输，此处必须有输入流，否则线程中止，原因不明
+                    // 图片传输，此处必须有输入流，否则线程中止，原因不明
                     outputMsg("开始接收图片...", 1);
                     DataInputStream dataInput = new DataInputStream(socket.getInputStream());
                     List<Byte> list = new ArrayList<>();
-                    int size = 1024;//每次传输1024byte
+                    int size = 1024;// 每次传输1024byte
                     byte[] data = new byte[size];
                     int len;
-                    //读入直到输入流为空
-                    while ((len = dataInput.read(data, 0, data.length)) > 0){
-                        //重要：把len作为参数传进去，
-                        //由于网络原因，DataInputStream.read并不是每次都返回data.size个字节，有可能比data.size小，
-                        //那么data[]后面的字节填充的是无效数据，要把它忽略掉，否则图片有马赛克
+                    // 读入直到输入流为空
+                    while ((len = dataInput.read(data, 0, data.length)) > 0) {
+                        // 重要：把len作为参数传进去，
+                        // 由于网络原因，DataInputStream.read并不是每次都返回data.size个字节，有可能比data.size小，
+                        // 那么data[]后面的字节填充的是无效数据，要把它忽略掉，否则图片有马赛克
                         appendByteArrayIntoByteList(list, data, len);
                     }
-                    //将数据转为byte数组
+                    // 将数据转为byte数组
                     Byte[] IMG = list.toArray(new Byte[0]);
                     byte[] img = new byte[IMG.length];
-                    for (int i = 0; i < IMG.length; i++){
+                    for (int i = 0; i < IMG.length; i++) {
                         img[i] = IMG[i];
                     }
-                    //将数据转为bitmap图像
+                    // 将数据转为bitmap图像
                     ByteArrayOutputStream outPut = new ByteArrayOutputStream();
                     Bitmap bmp = BitmapFactory.decodeByteArray(img, 0, img.length);
-                    if (bmp == null){
+                    if (bmp == null) {
                         outputMsg("未获取到图片！", 1);
                         return;
                     }
                     bmp.compress(Bitmap.CompressFormat.PNG, 100, outPut);
-                    //传回主线程
+                    // 传回主线程
                     Message msg = new Message();
-                    //msg.what = 0x002;
                     msg.obj = bmp;
                     handlerSetImg.sendMessage(msg);
                     outputMsg("图片已接收！", 1);
 
-                    //关闭输出流，关闭socket连接
+                    // 关闭输出流，关闭socket连接
                     os.close();
                     socket.close();
                     outputMsg(endline, 2);
@@ -390,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }.start();
     }
 
-    //获取触摸点对应坐标（按比例），并赋值到文本编辑框中
+    // 获取触摸点对应坐标（按比例），并赋值到文本编辑框中
     class ImageListener implements View.OnTouchListener {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -401,29 +406,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             int maxsize = 1000;
             x *= maxsize;
             y *= maxsize;
-            if (x < 0) x = 0;
-            if (y < 0) y = 0;
-            if (x > maxsize) x = maxsize;
-            if (y > maxsize) y = maxsize;
+            if (x < 0)
+                x = 0;
+            if (y < 0)
+                y = 0;
+            if (x > maxsize)
+                x = maxsize;
+            if (y > maxsize)
+                y = maxsize;
 
             EditText editX = findViewById(R.id.textX);
-            editX.setText(String.valueOf((int)x));
+            editX.setText(String.valueOf((int) x));
             EditText editY = findViewById(R.id.textY);
-            editY.setText(String.valueOf((int)y));
+            editY.setText(String.valueOf((int) y));
 
             return true;
         }
     }
 
-    //输出信息到log, what：1与isRev相关，2与isRev无关
-    private void outputMsg(String str, int what){
+    // 输出信息到log, what：1与isRev相关，2与isRev无关
+    private void outputMsg(String str, int what) {
         Message Msg = new Message();
         Msg.obj = str;
         Msg.what = what;
         handlerOutput.sendMessage(Msg);
     }
 
-    //隐藏状态栏
+    // 隐藏状态栏
     private void hideActionBar() {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
@@ -431,27 +440,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    //应用全屏
+    // 应用全屏
     private void setFullScreen() {
-        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
     }
 
-    //判断字符串是否全为数字
-    public static boolean isNumeric(String str){
-        for (int i = 0; i < str.length(); i++){
-            if (!Character.isDigit(str.charAt(i))){
+    // 判断字符串是否全为数字
+    public static boolean isNumeric(String str) {
+        for (int i = 0; i < str.length(); i++) {
+            if (!Character.isDigit(str.charAt(i))) {
                 return false;
             }
         }
         return true;
     }
 
-    //将字节数组添加到字节链表中
-    private void appendByteArrayIntoByteList(List<Byte> list, byte[] array, int count){
-        for (int i = 0; i < count; ++i){
+    // 将字节数组添加到字节链表中
+    private void appendByteArrayIntoByteList(List<Byte> list, byte[] array, int count) {
+        for (int i = 0; i < count; ++i) {
             list.add(array[i]);
         }
         return;
     }
 }
-
