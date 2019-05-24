@@ -1,2 +1,2 @@
 # AGV
-用于与AGV平台通信的Android APP
+与AGV平台进行双向通讯的Android APP
